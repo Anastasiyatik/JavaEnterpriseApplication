@@ -1,0 +1,417 @@
+package ejbholidaybookingapp;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.ejb.LocalBean;
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.NamedQuery;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
+import org.jboss.security.authorization.modules.AllDenyAuthorizationModule;
+
+import model.TDepartment;
+import model.TEmployee;
+import model.TEmployeeRole;
+import model.TRequest;
+import model.TRequestStatus;
+
+/**
+ * Session Bean implementation class HolidayBookingAppEJB
+ */
+@Stateless
+@LocalBean
+public class HolidayBookingAppBean implements HolidayBookingAppBeanRemote {
+	/**
+	 * Default constructor.
+	 */
+	private SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+	private Calendar calendar = Calendar.getInstance();
+
+	public HolidayBookingAppBean() {
+		// TODO Auto-generated constructor stub
+	}
+
+	@PersistenceContext
+	EntityManager entityManager;
+
+	@Override
+	public String login(String email, String password) {
+		TEmployee result = (TEmployee) entityManager
+				.createQuery("SELECT e FROM TEmployee e WHERE e.email = :email and e.password = :password")
+				.setParameter("email", email).setParameter("password", password).getSingleResult();
+		return result != null ? result.getEmail() + "," + result.getEmployeeRole().getIsAdmin() : null;
+	}
+
+	@Override
+	public List<EmployeeDTO> getAllEmployees() {
+		List<TEmployee> allEmployees = entityManager.createNamedQuery("TEmployee.findAll").getResultList();
+		List<EmployeeDTO> allEmployeesDTO = new ArrayList<>();
+		for (TEmployee e : allEmployees) {
+			allEmployeesDTO.add(new EmployeeDTO(e.getId(), e.getDepartment().getIdDep(), e.getDepartment().getDepName(),
+					e.getEmail(), e.getPassword(), e.getFirstName(), e.getLastName(), e.getPhoneNumber(),
+					e.getHireDate(), e.getSalary(), e.getHomeAddress(), e.getEmployeeRole().getIdRole(),
+					e.getEmployeeRole().getRoleName()));
+		}
+		return allEmployeesDTO;
+	}
+
+	@Override
+	public boolean addNewEmployee(EmployeeDTO newEmp) {
+		try {
+			TDepartment department = (TDepartment) entityManager.createNamedQuery("TDepartment.findByName")
+					.setParameter("name", newEmp.getDepName()).getSingleResult();
+			TEmployeeRole role = (TEmployeeRole) entityManager.createNamedQuery("TEmployeeRole.findByName")
+					.setParameter("name", newEmp.getRoleName()).getSingleResult();
+			TEmployee newEmployee = new TEmployee(newEmp.getEmail(), newEmp.getPassword(), newEmp.getFirstName(),
+					newEmp.getLastName(), newEmp.getPhoneNumber(), newEmp.getHireDate(), newEmp.getSalary(),
+					newEmp.getHomeAddress(), department, role);
+			entityManager.persist(newEmployee);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public boolean editEmployee(EmployeeDTO editEmp) {
+		try {
+			TDepartment department = (TDepartment) entityManager.createNamedQuery("TDepartment.findByName")
+					.setParameter("name", editEmp.getDepName()).getSingleResult();
+			TEmployeeRole employeeRole = (TEmployeeRole) entityManager.createNamedQuery("TEmployeeRole.findByName")
+					.setParameter("name", editEmp.getRoleName()).getSingleResult();
+			TEmployee employee = entityManager.find(TEmployee.class, editEmp.getId());
+
+			employee.setEmail(editEmp.getEmail());
+			employee.setPassword(editEmp.getPassword());
+			employee.setFirstName(editEmp.getFirstName());
+			employee.setLastName(editEmp.getLastName());
+			employee.setPhoneNumber(editEmp.getPhoneNumber());
+			employee.setHireDate(editEmp.getHireDate());
+			employee.setSalary(editEmp.getSalary());
+			employee.setHomeAddress(editEmp.getHomeAddress());
+			employee.setDepartment(department);
+			employee.setEmployeeRole(employeeRole);
+
+			entityManager.merge(employee);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public List<DepartmentDTO> getAllDepartments() {
+		List<TDepartment> allDepartments = entityManager.createNamedQuery("TDepartment.findAll").getResultList();
+		List<DepartmentDTO> allDepartmentsDTO = new ArrayList<>();
+		for (TDepartment d : allDepartments) {
+			allDepartmentsDTO
+					.add(new DepartmentDTO(d.getIdDep(), d.getDepName(), d.getMaxNPeople(), d.getNRequiredPeople()));
+		}
+		return allDepartmentsDTO;
+	}
+
+	@Override
+	public List<RoleDTO> getAllRoles() {
+		List<TEmployeeRole> allRoles = entityManager.createNamedQuery("TEmployeeRole.findAll").getResultList();
+		List<RoleDTO> allRolesDTO = new ArrayList<>();
+		for (TEmployeeRole d : allRoles) {
+			allRolesDTO.add(new RoleDTO(d.getIdRole(), d.getRoleName(), d.getIsAdmin()));
+		}
+		return allRolesDTO;
+	}
+
+	@Override
+	public EmployeeDTO getEmployeeById(int employeeId) {
+		TEmployee employee = entityManager.find(TEmployee.class, employeeId);
+		EmployeeDTO employeeDTO = new EmployeeDTO(employee.getId(), employee.getDepartment().getIdDep(),
+				employee.getDepartment().getDepName(), employee.getEmail(), employee.getPassword(),
+				employee.getFirstName(), employee.getLastName(), employee.getPhoneNumber(), employee.getHireDate(),
+				employee.getSalary(), employee.getHomeAddress(), employee.getEmployeeRole().getIdRole(),
+				employee.getEmployeeRole().getRoleName());
+		return employeeDTO;
+	}
+
+	@Override
+	public EmployeeDTO getEmployeeByEmail(String userName) {
+		TEmployee employee = (TEmployee) entityManager.createNamedQuery("TEmployee.findByEmail")
+				.setParameter("email", userName).getSingleResult();
+		EmployeeDTO employeeDTO = new EmployeeDTO(employee.getId(), employee.getDepartment().getIdDep(),
+				employee.getDepartment().getDepName(), employee.getEmail(), employee.getPassword(),
+				employee.getFirstName(), employee.getLastName(), employee.getPhoneNumber(), employee.getHireDate(),
+				employee.getSalary(), employee.getHomeAddress(), employee.getEmployeeRole().getIdRole(),
+				employee.getEmployeeRole().getRoleName());
+		return employeeDTO;
+	}
+
+	@Override
+	public List<EmployeeDTO> getApproversByDep(int idDep) {
+		List<TEmployee> allApprovers = entityManager.createNamedQuery("TEmployee.findApproversForByDep")
+				.setParameter("idDep", idDep).getResultList();
+		List<EmployeeDTO> allApproversDTO = new ArrayList<>();
+		for (TEmployee e : allApprovers) {
+			allApproversDTO.add(new EmployeeDTO(e.getId(), e.getDepartment().getIdDep(), e.getDepartment().getDepName(),
+					e.getEmail(), e.getPassword(), e.getFirstName(), e.getLastName(), e.getPhoneNumber(),
+					e.getHireDate(), e.getSalary(), e.getHomeAddress(), e.getEmployeeRole().getIdRole(),
+					e.getEmployeeRole().getRoleName()));
+		}
+		return allApproversDTO;
+	}
+	
+	
+
+	@Override
+	public void addNewRequestAlert(String creator, String addressee, String emailBody) {
+		
+		
+	}
+
+	@Override
+	public boolean deleteEmployee(int employeeId) {
+		try {
+			TEmployee employee = entityManager.find(TEmployee.class, employeeId);
+			entityManager.remove(employee);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public void newRequest(String userName, Date fromDate, Date toDate) {
+		TEmployee employee = (TEmployee) entityManager.createNamedQuery("TEmployee.findByEmail")
+				.setParameter("email", userName).getSingleResult();
+		TRequestStatus reqStatus = (TRequestStatus) entityManager.createNamedQuery("TRequestStatus.findByName")
+				.setParameter("name", "Pending").getSingleResult();
+		TRequest newReq = new TRequest(employee, fromDate, toDate, reqStatus);
+		entityManager.persist(newReq);
+	}
+
+	@Override
+	public List<RequestDTO> getAllRequestsByUser(String userName) {
+		List<TRequest> allRequestsByUser = entityManager.createNamedQuery("TRequest.findByUser")
+				.setParameter("email", userName).getResultList();
+		List<RequestDTO> allRequestsByUserDTO = new ArrayList<>();
+		for (TRequest r : allRequestsByUser) {
+			allRequestsByUserDTO.add(new RequestDTO(r.getIdReq(), r.getFromDate(), r.getToDate(),
+					r.getTRequestStatus().getIdReqStat(), r.getTRequestStatus().getName(),
+					r.getDescr() == null ? "" : r.getDescr(), "", 0, r.getEmpDetails()));
+		}
+		List<RequestDTO> sortedResult = allRequestsByUserDTO.stream()
+				.sorted((a, b) -> Integer.compare(b.getIdReq(), a.getIdReq())).collect(Collectors.toList());
+		return sortedResult;
+	}
+
+	@Override
+	public List<RequestDTO> getRequestsByDepName(String userName) {
+		TEmployee employee = (TEmployee) entityManager.createNamedQuery("TEmployee.findByEmail")
+				.setParameter("email", userName).getSingleResult();
+		List<TRequest> allRequestsByDep = entityManager.createNamedQuery("TRequest.findPendingByDep")
+				.setParameter("depName", employee.getDepartment().getDepName()).getResultList();
+
+		Map<String, Integer> empRoleCntByDep = new HashMap<>();
+		List<Object[]> results = entityManager.createNamedQuery("TEmployee.findEmpRoleCntByDep")
+				.setParameter("idDep", employee.getDepartment().getIdDep()).getResultList();
+		for (Object[] result : results) {
+			String roleName = (String) result[0];
+			int empCnt = ((Number) result[1]).intValue();
+			empRoleCntByDep.put(roleName, empCnt);
+		}
+
+		List<RequestDTO> allRequestsByDepDTO = new ArrayList<>();
+		for (TRequest r : allRequestsByDep) {
+			Map<String, String> requestAnalysis = analyseRequest(r, empRoleCntByDep);
+
+			allRequestsByDepDTO.add(
+					new RequestDTO(r.getIdReq(), r.getFromDate(), r.getToDate(), r.getTRequestStatus().getIdReqStat(),
+							r.getTRequestStatus().getName(), r.getDescr(), requestAnalysis.get("analyseRequestResult"),
+							Integer.parseInt(requestAnalysis.get("approvedDaysCnt")), r.getEmpDetails()));
+		}
+		Collections.sort(allRequestsByDepDTO);
+		return allRequestsByDepDTO;
+	}
+
+	private Map<String, String> analyseRequest(TRequest currentRequest, Map<String, Integer> empRoleCntByDep) {
+		Map<String, String> result = new HashMap<>();
+		try {
+			Set<String> analyseRequestResult = new HashSet<>();
+
+			Map<String, String> checkNumberOfHolidaysResult = checkNumberOfHolidays(currentRequest);
+			String resultCheckNumberOfHolidays = checkNumberOfHolidaysResult.get("resultCheckNumberOfHolidays");
+			if (resultCheckNumberOfHolidays != null)
+				analyseRequestResult.add(resultCheckNumberOfHolidays);
+			result.put("approvedDaysCnt", checkNumberOfHolidaysResult.get("approvedDaysCnt"));
+
+			int empCntByDep = empRoleCntByDep.values().stream().reduce(0, Integer::sum);
+			Query mainQuery = entityManager.createNamedQuery("TRequest.findApprovedByDepAndDateForOtherEmps")
+					.setParameter("idEmp", currentRequest.getEmployee().getId())
+					.setParameter("idDep", currentRequest.getEmployee().getDepartment().getIdDep());
+
+			final String xmas = "Xmas";
+			final String fortyPrc = "40%";
+			final String sixtyPrc = "60%";
+			Map<Integer, String> sixtyPrcMap = new HashMap<>();
+			calendar.setTime(currentRequest.getFromDate());
+			Date xmasBeforeStartDate = simpleDateFormat.parse("22/12/" + calendar.get(Calendar.YEAR));
+			Date xmasAfterEndDate = simpleDateFormat.parse("04/01/" + (calendar.get(Calendar.YEAR) + 1));
+			Map<Integer, String> fourtyPrcMap = new HashMap<>();
+			Date checkingDate = currentRequest.getFromDate();
+			while (!checkingDate.after(currentRequest.getToDate())) {
+				String checkingDateType = null;
+				String checkingDateStr = simpleDateFormat.format(checkingDate);
+				calendar.setTime(checkingDate);
+				if (checkingDate.after(xmasBeforeStartDate) && checkingDate.before(xmasAfterEndDate)) {
+					checkingDateType = xmas;
+				} else if (calendar.get(Calendar.MONTH) == 7) {
+					checkingDateType = fortyPrc;
+				} else {
+					checkingDateType = sixtyPrc;
+				}
+
+				if (!checkingDateType.equals(xmas)) {
+					List<TRequest> reqs = mainQuery.setParameter("date", checkingDate).getResultList();
+					for (TRequest r : reqs) {
+						if (checkingDateType == fortyPrc) {
+							fourtyPrcMap.put(r.getEmployee().getId(), r.getEmployee().getEmployeeRole().getRoleName());
+						} else {
+							sixtyPrcMap.put(r.getEmployee().getId(), r.getEmployee().getEmployeeRole().getRoleName());
+						}
+					}
+
+					if (checkingDateType.equals(fortyPrc)) {
+						if ((double) empCntByDep * 0.4 < fourtyPrcMap.size() + 1) {
+							analyseRequestResult
+									.add("The number of employees of a department on duty is less than 40% on "
+											+ checkingDateStr);
+						}
+					} else {
+						if ((double) empCntByDep * 0.6 < sixtyPrcMap.size() + 1) {
+							analyseRequestResult
+									.add("The number of employees of a department on duty is less than 60% on "
+											+ checkingDateStr);
+						}
+					}
+					String currentRequestEmpRoleName = currentRequest.getEmployee().getEmployeeRole().getRoleName();
+					if (currentRequestEmpRoleName.equals("Manager")
+							|| currentRequestEmpRoleName.equals("Senior member")) {
+						int cntMngrsOrSnrMemrsOnHoliday = 0;
+						if (checkingDateType.equals(fortyPrc)) {
+							cntMngrsOrSnrMemrsOnHoliday = (int) fourtyPrcMap.values().stream()
+									.filter(a -> a.equals(currentRequestEmpRoleName)).count() + 1;
+						} else {
+							cntMngrsOrSnrMemrsOnHoliday = (int) sixtyPrcMap.values().stream()
+									.filter(a -> a.equals(currentRequestEmpRoleName)).count() + 1;
+						}
+						if (empRoleCntByDep.get(currentRequestEmpRoleName) - cntMngrsOrSnrMemrsOnHoliday < 1) {
+							analyseRequestResult.add("At least one " + currentRequestEmpRoleName
+									+ " must be on duty on " + checkingDateStr);
+						}
+					}
+				}
+				/*
+				 * LocalDateTime nextDate = LocalDateTime.ofInstant(checkingDate.toInstant(),
+				 * ZoneId.systemDefault()) .plusDays(1); checkingDate =
+				 * Date.from(nextDate.atZone(ZoneId.systemDefault()).toInstant());
+				 */
+				checkingDate = new Date(checkingDate.getTime() + TimeUnit.DAYS.toMillis(1));
+			}
+
+			result.put("analyseRequestResult", analyseRequestResult.stream().collect(Collectors.joining("\r\n")));
+			return result;
+		} catch (Exception e) {
+			e.printStackTrace();
+			result.put("analyseRequestResult", e.getMessage());
+			result.put("approvedDaysCnt", "0");
+			return result;
+		}
+	}
+
+	private Map<String, String> checkNumberOfHolidays(TRequest request) throws ParseException {
+		int totalHolDaysNum = request.getEmployee().getHolDaysNumber();
+		calendar.setTime(request.getFromDate());
+		int fromDateYear = calendar.get(Calendar.YEAR);
+		calendar.setTime(request.getToDate());
+		int toDateYear = calendar.get(Calendar.YEAR);
+		Map<Integer, Integer> daysApprovedByYear = new HashMap<>();
+		daysApprovedByYear.put(fromDateYear, 0);
+		if (fromDateYear != toDateYear)
+			daysApprovedByYear.put(toDateYear, 0);
+		List<Object[]> results = entityManager.createNamedQuery("TRequest.findApprovedByYearsForEmp")
+				.setParameter("empId", request.getEmployee().getId()).setParameter("fromDateYear", fromDateYear)
+				.setParameter("toDateYear", toDateYear).getResultList();
+		for (Object[] result : results) {
+			int cntApprovedDaysFromDateYear = ((Number) result[0]).intValue();
+			daysApprovedByYear.put(fromDateYear, daysApprovedByYear.get(fromDateYear) + cntApprovedDaysFromDateYear);
+			if (fromDateYear != toDateYear) {
+				int cntApprovedDaysToDateYear = ((Number) result[2]).intValue();
+				daysApprovedByYear.put(toDateYear, daysApprovedByYear.get(toDateYear) + cntApprovedDaysToDateYear);
+			}
+		}
+
+		String resultCheckNumberOfHolidays = null;
+		List<Object[]> resultCurReq = entityManager.createNamedQuery("TRequest.findById")
+				.setParameter("idReq", request.getIdReq()).getResultList();
+		int daysRequestedFromDateYear = ((Number) resultCurReq.get(0)[0]).intValue();
+		if (daysApprovedByYear.get(fromDateYear) + daysRequestedFromDateYear > totalHolDaysNum)
+			resultCheckNumberOfHolidays = "The number of days of holiday entitlement is exceeded in " + fromDateYear
+					+ " year";
+		if (request.getFromDate().getYear() != request.getToDate().getYear()) {
+			int daysRequestedToDateYear = ((Number) resultCurReq.get(0)[2]).intValue();
+
+			if (daysApprovedByYear.get(toDateYear) + daysRequestedToDateYear > totalHolDaysNum) {
+				resultCheckNumberOfHolidays = resultCheckNumberOfHolidays + resultCheckNumberOfHolidays != null ? "\r\n"
+						: "" + "The number of days of holiday entitlement is exceeded in " + toDateYear + " year";
+			}
+		}
+
+		Map<String, String> result = new HashMap<>();
+		result.put("resultCheckNumberOfHolidays", resultCheckNumberOfHolidays);
+		result.put("approvedDaysCnt", String.valueOf(daysApprovedByYear.get(fromDateYear)));
+		return result;
+	}
+
+	@Override
+	public void approveRequest(int requestId) {
+		TRequest request = entityManager.find(TRequest.class, requestId);
+		TRequestStatus requestApprovedStatus = (TRequestStatus) entityManager
+				.createNamedQuery("TRequestStatus.findByName").setParameter("name", "Approved").getSingleResult();
+		request.setTRequestStatus(requestApprovedStatus);
+		entityManager.merge(request);
+	}
+
+	@Override
+	public void rejectRequest(int requestId, String rejectReason) {
+		TRequest request = entityManager.find(TRequest.class, requestId);
+		TRequestStatus requestRejectedStatus = (TRequestStatus) entityManager
+				.createNamedQuery("TRequestStatus.findByName").setParameter("name", "Rejected").getSingleResult();
+		request.setTRequestStatus(requestRejectedStatus);
+		request.setDescr(rejectReason);
+		entityManager.merge(request);
+	}
+
+	private Date getEasterSundayDate(int year) throws ParseException {
+		int a = year % 19, b = year / 100, c = year % 100, d = b / 4, e = b % 4, g = (8 * b + 13) / 25,
+				h = (19 * a + b - d - g + 15) % 30, j = c / 4, k = c % 4, m = (a + 11 * h) / 319,
+				r = (2 * e + 2 * j - k - h + m + 32) % 7, n = (h - m + r + 90) / 25, p = (h - m + r + n + 19) % 32;
+
+		return simpleDateFormat.parse(p + "/" + n + "/" + year);
+	}
+}

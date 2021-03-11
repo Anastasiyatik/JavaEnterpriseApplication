@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename type &apos;model.TNewrequestalert&apos; to &apos;TNewRequestAlert&apos;&#x0D;&#x0A;- Original project: &apos;HolidayBookingApp&apos;&#x0D;&#x0A;- Original element: &apos;model.TNewrequestalert&apos;&#x0D;&#x0A;- Renamed element: &apos;model.TNewRequestAlert&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename type &apos;TNewrequestalert&apos;" flags="589830" id="org.eclipse.jdt.ui.rename.type" input="/ejbModule&lt;model{TNewrequestalert.java[TNewrequestalert" matchStrategy="1" name="TNewRequestAlert" qualified="false" references="true" similarDeclarations="false" stamp="1586101242035" textual="false" version="1.0"/>
+</session>

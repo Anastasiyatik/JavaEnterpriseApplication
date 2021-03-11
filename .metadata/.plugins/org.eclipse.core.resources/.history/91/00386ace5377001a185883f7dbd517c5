@@ -1,0 +1,79 @@
+package model;
+
+import java.io.Serializable;
+import javax.persistence.*;
+import java.util.Date;
+
+
+/**
+ * The persistent class for the T_NEWREQUESTALERTS database table.
+ * 
+ */
+@Entity
+@Table(name="T_NEWREQUESTALERTS")
+@NamedQuery(name="TNewrequestalert.findAll", query="SELECT t FROM TNewrequestalert t")
+public class TNewrequestalert implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	@Column(name="ALERT_ID")
+	private int alertId;
+
+	@Column(name="ADDRESSEE")
+	private String addressee;
+
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="CREATED")
+	private Date created;
+
+	@Column(name="CREATOR")
+	private String creator;
+
+	@Column(name="EMAIL_BODY")
+	private String emailBody;
+
+	public TNewrequestalert() {
+	}
+
+	public int getAlertId() {
+		return this.alertId;
+	}
+
+	public void setAlertId(int alertId) {
+		this.alertId = alertId;
+	}
+
+	public String getAddressee() {
+		return this.addressee;
+	}
+
+	public void setAddressee(String addressee) {
+		this.addressee = addressee;
+	}
+
+	public Date getCreated() {
+		return this.created;
+	}
+
+	public void setCreated(Date created) {
+		this.created = created;
+	}
+
+	public String getCreator() {
+		return this.creator;
+	}
+
+	public void setCreator(String creator) {
+		this.creator = creator;
+	}
+
+	public String getEmailBody() {
+		return this.emailBody;
+	}
+
+	public void setEmailBody(String emailBody) {
+		this.emailBody = emailBody;
+	}
+
+}

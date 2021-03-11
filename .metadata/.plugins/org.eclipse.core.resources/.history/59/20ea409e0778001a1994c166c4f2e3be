@@ -1,0 +1,189 @@
+package model;
+
+import static java.util.Calendar.*;
+import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
+import javax.persistence.*;
+
+/**
+ * The persistent class for the T_EMPLOYEE database table.
+ * 
+ */
+@Entity
+@Table(name = "T_EMPLOYEE")
+@NamedQueries({ @NamedQuery(name = "TEmployee.findAll", query = "SELECT t FROM TEmployee t"),
+		@NamedQuery(name = "TEmployee.findByEmail", query = "SELECT t FROM TEmployee t WHERE t.email = :email"),
+		@NamedQuery(name = "TEmployee.findCntByDep", query = "SELECT count(t) FROM TEmployee t where t.department.idDep = :idDep"),
+		@NamedQuery(name = "TEmployee.findEmpRoleCntByDep", query = "SELECT t.employeeRole.roleName, count(t) as cnt FROM TEmployee t where t.department.idDep = :idDep group by (t.employeeRole.roleName)"),
+		@NamedQuery(name = "TEmployee.findApproversForByDep", query = "SELECT t FROM TEmployee t where t.department.idDep = :idDep and t.employeeRole.isAdmin = 1")})
+public class TEmployee implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	public TEmployee(String email, String password, String firstName, String lastName, String phoneNumber,
+			Date hireDate, Integer salary, String homeAddress, TDepartment department, TEmployeeRole employeeRole) {
+		this.email = email;
+		this.password = password;
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.phoneNumber = phoneNumber;
+		this.hireDate = hireDate;
+		this.salary = salary;
+		this.homeAddress = homeAddress;
+		this.department = department;
+		this.employeeRole = employeeRole;
+	}
+
+	public TEmployee() {
+	}
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "ID")
+	private int Id;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_DEP", nullable = false)
+	private TDepartment department;
+
+	public TDepartment getDepartment() {
+		return department;
+	}
+
+	public void setDepartment(TDepartment department) {
+		this.department = department;
+	}
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_EMP_ROLE", nullable = false)
+	private TEmployeeRole employeeRole;
+
+	public TEmployeeRole getEmployeeRole() {
+		return employeeRole;
+	}
+
+	public void setEmployeeRole(TEmployeeRole employeeRole) {
+		this.employeeRole = employeeRole;
+	}
+
+	@Column(name = "EMAIL")
+	private String email;
+
+	@Column(name = "PASSWORD")
+	private String password;
+
+	@Column(name = "FIRST_NAME")
+	private String firstName;
+
+	@Column(name = "LAST_NAME")
+	private String lastName;
+
+	@Column(name = "PHONE_NUMBER")
+	private String phoneNumber;
+
+	@Column(name = "HIRE_DATE")
+	private Date hireDate;
+
+	@Column(name = "SALARY")
+	private Integer salary;
+
+	@Column(name = "HOME_ADDRESS")
+	private String homeAddress;
+
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
+	}
+
+	public Date getHireDate() {
+		return hireDate;
+	}
+
+	public void setHireDate(Date hireDate) {
+		this.hireDate = hireDate;
+	}
+
+	public Integer getSalary() {
+		return salary;
+	}
+
+	public void setSalary(Integer salary) {
+		this.salary = salary;
+	}
+
+	public String getHomeAddress() {
+		return homeAddress;
+	}
+
+	public void setHomeAddress(String homeAddress) {
+		this.homeAddress = homeAddress;
+	}
+
+	public int getId() {
+		return Id;
+	}
+
+	public void setId(int id) {
+		this.Id = id;
+	}
+
+	public String getEmail() {
+		return this.email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getPassword() {
+		return this.password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getFirstName() {
+		return this.firstName;
+	}
+
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+
+	public String getLastName() {
+		return this.lastName;
+	}
+
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
+
+	public int getHolDaysNumber() {
+		Date now = new Date();
+		int diffYears = getDiffYears(getHireDate(), now);
+		int extraDays = diffYears / 5;
+		return 30 + extraDays;
+	}
+
+	private static int getDiffYears(Date startDate, Date endDate) {
+		Calendar a = getClndFromDate(startDate);
+		Calendar b = getClndFromDate(endDate);
+		int diffYears = b.get(YEAR) - a.get(YEAR);
+		if (a.get(MONTH) > b.get(MONTH) || (a.get(MONTH) == b.get(MONTH) && a.get(DATE) > b.get(DATE))) {
+			diffYears--;
+		}
+		return diffYears;
+	}
+
+	private static Calendar getClndFromDate(Date date) {
+		Calendar calendar = Calendar.getInstance(Locale.UK);
+		calendar.setTime(date);
+		return calendar;
+	}
+}

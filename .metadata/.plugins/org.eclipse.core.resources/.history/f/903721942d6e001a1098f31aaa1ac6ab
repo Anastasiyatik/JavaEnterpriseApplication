@@ -1,0 +1,102 @@
+package model;
+
+import java.io.Serializable;
+import javax.persistence.*;
+import java.util.Date;
+
+/**
+ * The persistent class for the T_REQUESTS database table.
+ * 
+ */
+@Entity
+@Table(name = "T_REQUESTS")
+@NamedQueries({ @NamedQuery(name = "TRequest.findAll", query = "SELECT t FROM TRequest t"),
+		@NamedQuery(name = "TRequest.findByUser", query = "SELECT t FROM TRequest t WHERE t.employee.email = :email"),
+		@NamedQuery(name = "TRequest.findAllByDep", query = "SELECT t FROM TRequest t WHERE t.employee.department.depName = :depName"),
+		@NamedQuery(name = "TRequest.findPendingByDep", query = "SELECT t FROM TRequest t WHERE t.employee.department.depName = :depName and t.reqStatus.name = \"Pending\""),
+		@NamedQuery(name = "TRequest.findApprovedByDepAndDateForOtherEmps", query = "SELECT t FROM TRequest t WHERE t.employee.id != :empId and t.employee.department.idDep = :idDep and :date between t.fromDate and t.toDate") })
+public class TRequest implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "ID_REQ")
+	private Integer idReq;
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "FROM_DATE")
+	private Date fromDate;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_EMP")
+	private TEmployee employee;
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "TO_DATE")
+	private Date toDate;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "ID_STAT")
+	private TRequestStatus reqStatus;
+
+	@Column(name = "DESCR")
+	private String descr;
+
+	public TRequest(TEmployee emp, Date fromDate, Date toDate, TRequestStatus reqStatus) {
+		this.employee = emp;
+		this.fromDate = fromDate;
+		this.toDate = toDate;
+		this.reqStatus = reqStatus;
+	}
+
+	public TRequest() {
+	}
+
+	public int getIdReq() {
+		return this.idReq;
+	}
+
+	public void setIdReq(int idReq) {
+		this.idReq = idReq;
+	}
+
+	public Date getFromDate() {
+		return this.fromDate;
+	}
+
+	public void setFromDate(Date fromDate) {
+		this.fromDate = fromDate;
+	}
+
+	public Date getToDate() {
+		return this.toDate;
+	}
+
+	public void setToDate(Date toDate) {
+		this.toDate = toDate;
+	}
+
+	public TRequestStatus getTRequestStatus() {
+		return this.reqStatus;
+	}
+
+	public void setTRequestStatus(TRequestStatus reqStatus) {
+		this.reqStatus = reqStatus;
+	}
+
+	public String getDescr() {
+		return descr;
+	}
+
+	public void setDescr(String descr) {
+		this.descr = descr;
+	}
+
+	public TEmployee getEmployee() {
+		return employee;
+	}
+
+	public void setEmployee(TEmployee employee) {
+		this.employee = employee;
+	}
+}

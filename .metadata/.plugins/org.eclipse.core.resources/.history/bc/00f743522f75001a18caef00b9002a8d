@@ -1,0 +1,58 @@
+<%@ page import="java.util.List"%>
+<%@ page import="ejbholidaybookingapp.RequestDTO"%>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+	pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Insert title here</title>
+<link rel="stylesheet" href="css/bootstrap.css">
+<link rel="stylesheet" href="css/css.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark"
+		role="navigation">
+
+		<a class="navbar-brand" href="#">Holiday booking</a>
+	  
+	</nav>
+
+	<%
+		String isLogin = (String) session.getAttribute("userName");
+		if (isLogin == null) {
+			response.sendRedirect("HolidayBookingAppServlet");
+		}
+	%>
+	<h4>My requests/Submit new</h4>
+	<form class="form-signin" method="POST" action="RequestsServlet">
+		<label>From</label><input type="date" name="fromDate"> <label>To</label><input
+			type="date" name="toDate">
+		<button type="submit" class="btn-lg btn-primary btn-block" name="newRequest">submit</button>
+	</form>
+	<div class="table-responsive">
+		<table class="table-striped table-bordered table">
+			<tr>
+				<th>From Date</th>
+				<th>To Date</th>
+				<th class="text-center">Status</th>
+				<th>Description</th>
+			</tr>
+			<%
+				List<RequestDTO> allRequestsByUser = (List) request.getAttribute("allRequestsByUser");
+				int cnt = 0;
+				for (RequestDTO e : allRequestsByUser) {
+			%>
+			<tr>
+				<td><%=e.getFromDate()%></td>
+				<td><%=e.getToDate()%></td>
+				<td><%=e.getReqStatusName()%></td>
+				<td><%=e.getDescr()%></td>
+			</tr>
+			<%
+				}
+			%>
+		</table>
+	</div>
+</body>
+</html>

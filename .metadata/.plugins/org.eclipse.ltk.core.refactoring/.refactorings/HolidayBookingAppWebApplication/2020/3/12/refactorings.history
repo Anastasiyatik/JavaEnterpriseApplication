@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename type &apos;holidaybookingappclient.RequestsServlet&apos; to &apos;UserRequestsServlet&apos;&#x0D;&#x0A;- Original project: &apos;HolidayBookingAppWebApplication&apos;&#x0D;&#x0A;- Original element: &apos;holidaybookingappclient.RequestsServlet&apos;&#x0D;&#x0A;- Renamed element: &apos;holidaybookingappclient.UserRequestsServlet&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename type &apos;RequestsServlet&apos;" flags="589830" id="org.eclipse.jdt.ui.rename.type" input="/src&lt;holidaybookingappclient{RequestsServlet.java[RequestsServlet" matchStrategy="1" name="UserRequestsServlet" qualified="false" references="true" similarDeclarations="false" stamp="1584475982575" textual="false" version="1.0"/>
+</session>

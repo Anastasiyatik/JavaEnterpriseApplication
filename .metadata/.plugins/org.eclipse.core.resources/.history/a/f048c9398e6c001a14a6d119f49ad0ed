@@ -1,0 +1,315 @@
+package ejbholidaybookingapp;
+
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.ejb.LocalBean;
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.NamedQuery;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
+import org.jboss.security.authorization.modules.AllDenyAuthorizationModule;
+
+import model.CalculatorResult;
+import model.TDepartment;
+import model.TEmployee;
+import model.TEmployeeRole;
+import model.TRequest;
+import model.TRequestStatus;
+
+/**
+ * Session Bean implementation class HolidayBookingAppEJB
+ */
+@Stateless
+@LocalBean
+public class HolidayBookingAppBean implements HolidayBookingAppBeanRemote {
+	/**
+	 * Default constructor.
+	 */
+	private SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+
+	public HolidayBookingAppBean() {
+		// TODO Auto-generated constructor stub
+	}
+
+	@PersistenceContext
+	EntityManager entityManager;
+
+	@Override
+	public String login(String email, String password) {
+		TEmployee result = (TEmployee) entityManager
+				.createQuery("SELECT e FROM TEmployee e WHERE e.email = :email and e.password = :password")
+				.setParameter("email", email).setParameter("password", password).getSingleResult();
+		return result != null ? result.getEmail() + "," + result.getEmployeeRole().getIsAdmin() : null;
+		/*
+		 * if (queryResults.isEmpty()) return false; else return true;
+		 */
+	}
+
+	@Override
+	public List<EmployeeDTO> getAllEmployees() {
+		List<TEmployee> allEmployees = entityManager.createNamedQuery("TEmployee.findAll").getResultList();
+		List<EmployeeDTO> allEmployeesDTO = new ArrayList<>();
+		for (TEmployee e : allEmployees) {
+			allEmployeesDTO.add(new EmployeeDTO(e.getId(), e.getDepartment().getIdDep(), e.getDepartment().getDepName(),
+					e.getEmail(), e.getPassword(), e.getFirstName(), e.getLastName(), e.getPhoneNumber(),
+					e.getHireDate(), e.getSalary(), e.getHomeAddress(), e.getEmployeeRole().getIdRole(),
+					e.getEmployeeRole().getRoleName()));
+		}
+		return allEmployeesDTO;
+	}
+
+	@Override
+	public boolean addNewEmployee(EmployeeDTO newEmp) {
+		try {
+			TDepartment department = (TDepartment) entityManager.createNamedQuery("TDepartment.findByName")
+					.setParameter("name", newEmp.getDepName()).getSingleResult();
+			TEmployeeRole role = (TEmployeeRole) entityManager.createNamedQuery("TEmployeeRole.findByName")
+					.setParameter("name", newEmp.getRoleName()).getSingleResult();
+			TEmployee newEmployee = new TEmployee(newEmp.getEmail(), newEmp.getPassword(), newEmp.getFirstName(),
+					newEmp.getLastName(), newEmp.getPhoneNumber(), newEmp.getHireDate(), newEmp.getSalary(),
+					newEmp.getHomeAddress(), department, role);
+			entityManager.persist(newEmployee);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public boolean editEmployee(EmployeeDTO editEmp) {
+		try {
+			TDepartment department = (TDepartment) entityManager.createNamedQuery("TDepartment.findByName")
+					.setParameter("name", editEmp.getDepName()).getSingleResult();
+			TEmployeeRole employeeRole = (TEmployeeRole) entityManager.createNamedQuery("TEmployeeRole.findByName")
+					.setParameter("name", editEmp.getRoleName()).getSingleResult();
+			TEmployee employee = entityManager.find(TEmployee.class, editEmp.getId());
+
+			employee.setEmail(editEmp.getEmail());
+			employee.setPassword(editEmp.getPassword());
+			employee.setFirstName(editEmp.getFirstName());
+			employee.setLastName(editEmp.getLastName());
+			employee.setPhoneNumber(editEmp.getPhoneNumber());
+			employee.setHireDate(editEmp.getHireDate());
+			employee.setSalary(editEmp.getSalary());
+			employee.setHomeAddress(editEmp.getHomeAddress());
+			employee.setDepartment(department);
+			employee.setEmployeeRole(employeeRole);
+
+			entityManager.merge(employee);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public List<DepartmentDTO> getAllDepartments() {
+		List<TDepartment> allDepartments = entityManager.createNamedQuery("TDepartment.findAll").getResultList();
+		List<DepartmentDTO> allDepartmentsDTO = new ArrayList<>();
+		for (TDepartment d : allDepartments) {
+			allDepartmentsDTO
+					.add(new DepartmentDTO(d.getIdDep(), d.getDepName(), d.getMaxNPeople(), d.getNRequiredPeople()));
+		}
+		return allDepartmentsDTO;
+	}
+
+	@Override
+	public List<RoleDTO> getAllRoles() {
+		List<TEmployeeRole> allRoles = entityManager.createNamedQuery("TEmployeeRole.findAll").getResultList();
+		List<RoleDTO> allRolesDTO = new ArrayList<>();
+		for (TEmployeeRole d : allRoles) {
+			allRolesDTO.add(new RoleDTO(d.getIdRole(), d.getRoleName(), d.getIsAdmin()));
+		}
+		return allRolesDTO;
+	}
+
+	@Override
+	public EmployeeDTO getEmployeeById(int employeeId) {
+		TEmployee employee = entityManager.find(TEmployee.class, employeeId);
+		EmployeeDTO employeeDTO = new EmployeeDTO(employee.getId(), employee.getDepartment().getIdDep(),
+				employee.getDepartment().getDepName(), employee.getEmail(), employee.getPassword(),
+				employee.getFirstName(), employee.getLastName(), employee.getPhoneNumber(), employee.getHireDate(),
+				employee.getSalary(), employee.getHomeAddress(), employee.getEmployeeRole().getIdRole(),
+				employee.getEmployeeRole().getRoleName());
+		return employeeDTO;
+	}
+
+	@Override
+	public boolean deleteEmployee(int employeeId) {
+		try {
+			TEmployee employee = entityManager.find(TEmployee.class, employeeId);
+			entityManager.remove(employee);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public void newRequest(String userName, Date fromDate, Date toDate) {
+		TEmployee employee = (TEmployee) entityManager.createNamedQuery("TEmployee.findByEmail")
+				.setParameter("email", userName).getSingleResult();
+		TRequestStatus reqStatus = (TRequestStatus) entityManager.createNamedQuery("TRequestStatus.findByName")
+				.setParameter("name", "Pending").getSingleResult();
+		TRequest newReq = new TRequest(employee, fromDate, toDate, reqStatus);
+		entityManager.persist(newReq);
+	}
+
+	@Override
+	public List<RequestDTO> getAllRequestsByUser(String userName) {
+		List<TRequest> allRequestsByUser = entityManager.createNamedQuery("TRequest.findByUser")
+				.setParameter("email", userName).getResultList();
+		List<RequestDTO> allRequestsByUserDTO = new ArrayList<>();
+		for (TRequest r : allRequestsByUser) {
+			allRequestsByUserDTO.add(
+					new RequestDTO(r.getIdReq(), r.getFromDate(), r.getToDate(), r.getTRequestStatus().getIdReqStat(),
+							r.getTRequestStatus().getName(), r.getDescr() == null ? "" : r.getDescr(), 0));
+		}
+		return allRequestsByUserDTO;
+	}
+
+	@Override
+	public List<RequestDTO> getRequestsByDepName(String userName, boolean isPending) {
+		TEmployee employee = (TEmployee) entityManager.createNamedQuery("TEmployee.findByEmail")
+				.setParameter("email", userName).getSingleResult();
+		List<TRequest> allRequestsByDep;
+		if (isPending) {
+			allRequestsByDep = entityManager.createNamedQuery("TRequest.findPendingByDep")
+					.setParameter("depName", employee.getDepartment().getDepName()).getResultList();
+		} else {
+			allRequestsByDep = entityManager.createNamedQuery("TRequest.findAllByDep")
+					.setParameter("depName", employee.getDepartment().getDepName()).getResultList();
+		}
+
+		/*
+		 * int empCntByDep = ((Number)
+		 * entityManager.createNamedQuery("TEmployee.findCntByDep")
+		 * .setParameter("idDep",
+		 * employee.getDepartment().getIdDep()).getSingleResult()).intValue();
+		 */
+
+		Map<String, Integer> empRoleCntByDep = new HashMap<>();
+		List<Object[]> results = entityManager.createNamedQuery("TEmployee.findEmpRoleCntByDep")
+				.setParameter("idDep", employee.getDepartment().getIdDep()).getResultList();
+		for (Object[] result : results) {
+			String roleName = (String) result[0];
+			int empCnt = ((Number) result[1]).intValue();
+			empRoleCntByDep.put(roleName, empCnt);
+		}
+
+		List<RequestDTO> allRequestsByDepDTO = new ArrayList<>();
+		for (TRequest r : allRequestsByDep) {
+			String descr = "";
+			if (isPending) {
+				int empId = r.getEmployee().getId();
+//				descr = "";
+			} else {
+				descr = r.getDescr() == null ? "" : r.getDescr();
+			}
+			allRequestsByDepDTO.add(new RequestDTO(r.getIdReq(), r.getFromDate(), r.getToDate(),
+					r.getTRequestStatus().getIdReqStat(), r.getTRequestStatus().getName(), descr, 0));
+		}
+		return allRequestsByDepDTO;
+	}	
+
+	@SuppressWarnings("deprecation")
+	private String analyseRequest(TRequest currentRequest, HashMap<String, Integer> empRoleCntByDep) {
+		try {
+			Set<String> result = new HashSet<>();
+			Calendar calendar = Calendar.getInstance();
+			int empCntByDep = empRoleCntByDep.values().stream().reduce(0, Integer::sum);
+			Query mainQuery = entityManager.createNamedQuery("TRequest.findApprovedByDepAndDateForOtherEmps")
+					.setParameter("idEmp", currentRequest.getEmployee().getId())
+					.setParameter("idDep", currentRequest.getEmployee().getDepartment().getIdDep());
+
+			final String xmas = "Xmas";
+			final String fortyPrc = "40%";
+			final String sixtyPrc = "60%";
+
+			Map<Integer, String> sixtyPrcMap = new HashMap<>();
+			calendar.setTime(currentRequest.getFromDate());
+			Date xmasBeforeStartDate = simpleDateFormat.parse("22/12/" + calendar.get(Calendar.YEAR));
+			Date xmasAfterEndDate = simpleDateFormat.parse("04/01/" + (calendar.get(Calendar.YEAR) + 1));
+			Map<Integer, String> fourtyPrcMap = new HashMap<>();
+			int peakCnt = 0;
+			Date checkingDate = currentRequest.getFromDate();
+			while (!checkingDate.after(currentRequest.getToDate())) {
+				String checkingDateType = null;
+				String checkingDateStr = simpleDateFormat.format(checkingDate);
+				calendar.setTime(checkingDate);
+				if (checkingDate.after(xmasBeforeStartDate) && checkingDate.before(xmasAfterEndDate)) {
+					checkingDateType = xmas;
+				} else if (calendar.get(Calendar.MONTH) == 7) {
+					checkingDateType = fortyPrc;
+				} else {
+					checkingDateType = sixtyPrc;
+				}
+
+				if (!checkingDateType.equals(xmas)) {
+					List<TRequest> reqs = mainQuery.setParameter("date", checkingDate).getResultList();
+					for (TRequest r : reqs) {
+						if (checkingDateType == fortyPrc) {
+							fourtyPrcMap.put(r.getEmployee().getId(), r.getEmployee().getEmployeeRole().getRoleName());
+						} else {
+							sixtyPrcMap.put(r.getEmployee().getId(), r.getEmployee().getEmployeeRole().getRoleName());
+						}
+					}
+
+					if ((double) empCntByDep * 0.4 < fourtyPrcMap.size() + 1) {
+						result.add("The number of employees of a department on duty is less than 40% on "
+								+ checkingDateStr);
+					}
+					if ((double) empCntByDep * 0.6 < sixtyPrcMap.size() + 1) {
+						result.add("The number of employees of a department on duty is less than 60% on "
+								+ checkingDateStr);
+					}
+					String currentRequestEmpRoleName = currentRequest.getEmployee().getEmployeeRole().getRoleName();
+					if (currentRequestEmpRoleName.equals("Manager")
+							|| currentRequestEmpRoleName.equals("Senior member")) {
+						int cntMngrsOrSnrMemOnHoliday = 0;
+						if (checkingDateType.equals(fortyPrc)) {
+							cntMngrsOrSnrMemOnHoliday = (int) fourtyPrcMap.values().stream()
+									.filter(a -> a.equals(currentRequestEmpRoleName)).count() + 1;
+						} else {
+							cntMngrsOrSnrMemOnHoliday = (int) sixtyPrcMap.values().stream()
+									.filter(a -> a.equals(currentRequestEmpRoleName)).count() + 1;
+						}
+						if (empRoleCntByDep.get(currentRequestEmpRoleName) - cntMngrsOrSnrMemOnHoliday < 1) {
+							result.add("At least one " + currentRequestEmpRoleName + " must be on duty on "
+									+ checkingDateStr);
+						}
+					}
+
+				}
+				LocalDateTime nextDate = LocalDateTime.ofInstant(checkingDate.toInstant(), ZoneId.systemDefault()).plusDays(1); 
+				checkingDate = Date.from(nextDate.atZone(ZoneId.systemDefault()).toInstant()); 
+			}
+
+			return result.stream().collect(Collectors.joining("\r\n"));
+		} catch (Exception e) {
+			e.printStackTrace();
+			return "ERROR";
+		}
+
+	}
+
+	public String getHireDateAsString() {
+		return new SimpleDateFormat("dd/MM/yyyy").format(getHireDate());
+	}
+}

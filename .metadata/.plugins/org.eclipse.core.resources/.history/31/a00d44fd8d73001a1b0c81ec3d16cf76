@@ -1,0 +1,48 @@
+package holidaybookingappclient;
+
+import java.util.Date;
+import javax.ejb.EJB;
+import javax.enterprise.context.RequestScoped;
+import javax.ws.rs.*;
+import ejbholidaybookingapp.HolidayBookingAppBeanRemote;
+
+@RequestScoped
+@Path("/")
+@Produces({ "application/xml", "application/json" })
+@Consumes({ "application/xml", "application/json" })
+public class WebService {
+
+	@EJB
+	private HolidayBookingAppBeanRemote holidayBookingAppBean;
+
+	@POST
+	@Path("/login")
+	@Produces({ "application/xml" })
+	public String loginWebService(@PathParam("email") String email, @PathParam("password") String password) {
+		String result = login(email, password);
+		String res = result == null ? "Invalid login/password" : result;
+		return "<result>" + res + "</result>";
+	}
+
+	public String login(String email, String password) {
+		return holidayBookingAppBean.login(email, password);
+	}
+
+	@POST
+	@Path("/submitnewrequest")
+	@Produces({ "application/json" })
+	public void SubmitNewRequestWebService(@PathParam("userName") String userName, @PathParam("fromDate") Date fromDate,
+			@PathParam("toDate") Date toDate) {
+		String result;
+		result = "<result>";
+		result += SubmitNewRequest(userName, fromDate, toDate);
+		result += "</result>";
+		return result;
+
+	}
+
+	public void submitNewRequest(String userName, Date fromDate, Date toDate) {
+		holidayBookingAppBean.newRequest(userName, fromDate, toDate);
+
+	}
+}

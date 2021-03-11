@@ -1,0 +1,54 @@
+<%@ page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ page import="java.util.List"%>
+<%@ page import="ejbholidaybookingapp.EmployeeDTO"%>
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="css/bootstrap_3.7.css">
+</head>
+<body>
+	<div class="row">
+		<div class="col-md-6">
+			<h3>Employees</h3>
+		</div>
+	</div>
+
+
+	<!-- <div class='col-sm-4 first_cont'>
+			 -->
+	<form method="POST" action="NewEmployeeServlet">
+		<button class="btn btn-warning" name="addNewEmployee" type="submit"
+			value="New_employee">Add New Employee</button>
+	</form>
+
+	<table class="table table-bordered table-striper table-hover">
+		<tr>
+			<th>First name</th>
+			<th>Last name</th>
+			<th>Email</th>
+			<th>Department</th>
+			<th class="text-center">Action</th>
+		</tr>
+		<%
+			List<EmployeeDTO> allEmployees = (List) request.getAttribute("allEmployees");
+			int cnt = 0;
+			for (EmployeeDTO e : allEmployees) { /* cnt ++; if (cnt == 1) { */
+		%>
+		<tr>
+			<td><%=e.getFirstName()%></td>
+			<td><%=e.getLastName()%></td>
+			<td><%=e.getEmail()%></td>
+			<td><%=e.getDepName()%></td>
+			<td>
+				<form method="POST" action="EmployeesServlet">
+					<button class="btn btn-warning" name="editEmployeeId"
+						value=<%=e.getId()%> type="submit">Edit</button>
+				</form>
+			</td>
+		</tr>
+		<%
+			} 
+		%>
+	</table>
+</body>
+</html>
